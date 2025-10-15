@@ -18,12 +18,12 @@ class EncounterController:
     def __init__(self, encounter_repo: EncounterRepository):
         self.encounter_repo = encounter_repo
 
-    async def get_encounter(self, encounter_id: UUID, user: User) -> EncounterResponse:
+    def get_encounter(self, encounter_id: UUID, user: User) -> EncounterResponse:
         """Get a specific encounter by ID"""
         if not AuthPolicies.can_read_all_resources(user):
             raise PermissionError("Insufficient permissions")
 
-        encounter = await self.encounter_repo.get_by_id(encounter_id)
+        encounter = self.encounter_repo.get_by_id(encounter_id)
         if not encounter:
             raise ValueError("Encounter not found")
 
@@ -40,7 +40,7 @@ class EncounterController:
             reasonCode=[{"coding": [{"code": encounter.reason_code}]}] if encounter.reason_code else []
         )
 
-    async def create_encounter(self, request: EncounterCreateRequest, user: User) -> EncounterResponse:
+    def create_encounter(self, request: EncounterCreateRequest, user: User) -> EncounterResponse:
         """Create a new encounter"""
         if not AuthPolicies.can_create_encounter(user):
             raise PermissionError("Insufficient permissions")
@@ -49,7 +49,7 @@ class EncounterController:
         encounter = Encounter.from_fhir_resource(request.dict(), UUID())
 
         # Save to repository
-        created_encounter = await self.encounter_repo.create(encounter)
+        created_encounter = self.encounter_repo.create(encounter)
 
         return EncounterResponse(
             resourceType="Encounter",
@@ -64,7 +64,7 @@ class EncounterController:
             reasonCode=[{"coding": [{"code": created_encounter.reason_code}]}] if created_encounter.reason_code else []
         )
 
-    async def search_encounters(self, request: EncounterSearchRequest, user: User) -> Bundle:
+    def search_encounters(self, request: EncounterSearchRequest, user: User) -> Bundle:
         """Search encounters"""
         if not AuthPolicies.can_read_all_resources(user):
             raise PermissionError("Insufficient permissions")
@@ -76,7 +76,7 @@ class EncounterController:
             except (ValueError, IndexError):
                 pass
 
-        encounters = await self.encounter_repo.search(
+        encounters = self.encounter_repo.search(
             status=request.status,
             subject=subject_uuid,
             date=request.date
@@ -103,3 +103,30 @@ class EncounterController:
             total=len(entries),
             entry=entries
         )
+
+    def update_encounter(self, encounter_id: UUID, request: EncounterCreateRequest, user: User) -> EncounterResponse:
+        """Update an existing encounter"""
+        if not AuthPolicies.can_modify_encounter(user.role.value):
+            raise PermissionError("Insufficient permissions")
+
+        encounter = Encounter.from_fhir_resource(request.dict(), encounter_id)
+        updated = self.encounter_repo.update(encounter)
+
+        return EncounterResponse(
+            resourceType="Encounter",
+            id=str(updated.id),
+            status=updated.status.value if updated.status else None,
+            class_={"code": updated.class_code} if updated.class_code else None,
+            subject={"reference": f"Patient/{updated.subject_patient_id}"} if updated.subject_patient_id else None,
+            period={
+                "start": updated.period_start,
+                "end": updated.period_end
+            } if updated.period_start or updated.period_end else None,
+            reasonCode=[{"coding": [{"code": updated.reason_code}]}] if updated.reason_code else []
+        )
+
+    def delete_encounter(self, encounter_id: UUID, user: User) -> bool:
+        """Delete an encounter"""
+        if not AuthPolicies.can_delete_encounter(user.role.value):
+            raise PermissionError("Insufficient permissions")
+        return self.encounter_repo.delete(encounter_id)

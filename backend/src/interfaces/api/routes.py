@@ -1,38 +1,47 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.orm import Session
 from typing import Optional
 from uuid import UUID
 
-from src.interfaces.api.deps import get_db, get_current_user, require_role
-from src.domain.auth.entities import User, UserRole
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.orm import Session
+
 from src.domain.auth.controller import AuthController
-from src.domain.auth.view import LoginRequest, TokenResponse, MeResponse
-from src.domain.fhir.patient.controller import PatientController
-from src.domain.fhir.patient.view import (
-    PatientCreateRequest,
-    PatientResponse,
-    PatientSearchRequest,
-    Bundle as PatientBundle,
-)
+from src.domain.auth.entities import User, UserRole
+from src.domain.auth.view import LoginRequest, MeResponse, TokenResponse
+from src.domain.bundle.services import JWTService, PasswordService
 from src.domain.fhir.encounter.controller import EncounterController
+from src.domain.fhir.encounter.view import Bundle as EncounterBundle
 from src.domain.fhir.encounter.view import (
     EncounterCreateRequest,
     EncounterResponse,
     EncounterSearchRequest,
-    Bundle as EncounterBundle,
 )
 from src.domain.fhir.observation.controller import ObservationController
+from src.domain.fhir.observation.view import Bundle as ObservationBundle
 from src.domain.fhir.observation.view import (
     ObservationCreateRequest,
     ObservationResponse,
     ObservationSearchRequest,
-    Bundle as ObservationBundle,
 )
-from src.infrastructure.db.repositories.auth_repo_sqlalchemy import SQLAlchemyUserRepository
-from src.infrastructure.db.repositories.fhir.patient_repo_sqlalchemy import SQLAlchemyPatientRepository
-from src.infrastructure.db.repositories.fhir.encounter_repo_sqlalchemy import SQLAlchemyEncounterRepository
-from src.infrastructure.db.repositories.fhir.observation_repo_sqlalchemy import SQLAlchemyObservationRepository
-from src.domain.bundle.services import PasswordService, JWTService
+from src.domain.fhir.patient.controller import PatientController
+from src.domain.fhir.patient.view import Bundle as PatientBundle
+from src.domain.fhir.patient.view import (
+    PatientCreateRequest,
+    PatientResponse,
+    PatientSearchRequest,
+)
+from src.infrastructure.db.repositories.auth_repo_sqlalchemy import (
+    SQLAlchemyUserRepository,
+)
+from src.infrastructure.db.repositories.fhir.encounter_repo_sqlalchemy import (
+    SQLAlchemyEncounterRepository,
+)
+from src.infrastructure.db.repositories.fhir.observation_repo_sqlalchemy import (
+    SQLAlchemyObservationRepository,
+)
+from src.infrastructure.db.repositories.fhir.patient_repo_sqlalchemy import (
+    SQLAlchemyPatientRepository,
+)
+from src.interfaces.api.deps import get_current_user, get_db, require_role
 
 router = APIRouter()
 
@@ -226,6 +235,50 @@ def search_patients(
             detail=str(e)
         )
 
+# Patient update
+@router.put("/fhir/Patient/{patient_id}", response_model=PatientResponse)
+def update_patient(
+    patient_id: str,
+    request: PatientCreateRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    try:
+        patient_uuid = UUID(patient_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid patient ID format")
+
+    patient_repo = SQLAlchemyPatientRepository(db)
+    patient_controller = PatientController(patient_repo)
+
+    try:
+        return patient_controller.update_patient(patient_uuid, request, current_user)
+    except PermissionError as e:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+
+# Patient delete
+@router.delete("/fhir/Patient/{patient_id}")
+def delete_patient(
+    patient_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    try:
+        patient_uuid = UUID(patient_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid patient ID format")
+
+    patient_repo = SQLAlchemyPatientRepository(db)
+    patient_controller = PatientController(patient_repo)
+
+    try:
+        ok = patient_controller.delete_patient(patient_uuid, current_user)
+        if not ok:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Patient not found")
+        return {"deleted": True}
+    except PermissionError as e:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+
 # Encounter endpoints
 @router.get("/fhir/Encounter/{encounter_id}", response_model=EncounterResponse)
 def get_encounter(
@@ -298,6 +351,50 @@ def search_encounters(
             detail=str(e)
         )
 
+# Encounter update
+@router.put("/fhir/Encounter/{encounter_id}", response_model=EncounterResponse)
+def update_encounter(
+    encounter_id: str,
+    request: EncounterCreateRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    try:
+        encounter_uuid = UUID(encounter_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid encounter ID format")
+
+    encounter_repo = SQLAlchemyEncounterRepository(db)
+    encounter_controller = EncounterController(encounter_repo)
+
+    try:
+        return encounter_controller.update_encounter(encounter_uuid, request, current_user)
+    except PermissionError as e:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+
+# Encounter delete
+@router.delete("/fhir/Encounter/{encounter_id}")
+def delete_encounter(
+    encounter_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    try:
+        encounter_uuid = UUID(encounter_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid encounter ID format")
+
+    encounter_repo = SQLAlchemyEncounterRepository(db)
+    encounter_controller = EncounterController(encounter_repo)
+
+    try:
+        ok = encounter_controller.delete_encounter(encounter_uuid, current_user)
+        if not ok:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Encounter not found")
+        return {"deleted": True}
+    except PermissionError as e:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+
 # Observation endpoints
 @router.get("/fhir/Observation/{observation_id}", response_model=ObservationResponse)
 def get_observation(
@@ -369,6 +466,50 @@ def search_observations(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=str(e)
         )
+
+# Observation update
+@router.put("/fhir/Observation/{observation_id}", response_model=ObservationResponse)
+def update_observation(
+    observation_id: str,
+    request: ObservationCreateRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    try:
+        observation_uuid = UUID(observation_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid observation ID format")
+
+    observation_repo = SQLAlchemyObservationRepository(db)
+    observation_controller = ObservationController(observation_repo)
+
+    try:
+        return observation_controller.update_observation(observation_uuid, request, current_user)
+    except PermissionError as e:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+
+# Observation delete
+@router.delete("/fhir/Observation/{observation_id}")
+def delete_observation(
+    observation_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    try:
+        observation_uuid = UUID(observation_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid observation ID format")
+
+    observation_repo = SQLAlchemyObservationRepository(db)
+    observation_controller = ObservationController(observation_repo)
+
+    try:
+        ok = observation_controller.delete_observation(observation_uuid, current_user)
+        if not ok:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Observation not found")
+        return {"deleted": True}
+    except PermissionError as e:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
 
 
     search_request = PatientSearchRequest(name=name, identifier=identifier)

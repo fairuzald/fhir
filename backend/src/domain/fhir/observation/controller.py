@@ -18,12 +18,12 @@ class ObservationController:
     def __init__(self, observation_repo: ObservationRepository):
         self.observation_repo = observation_repo
 
-    async def get_observation(self, observation_id: UUID, user: User) -> ObservationResponse:
+    def get_observation(self, observation_id: UUID, user: User) -> ObservationResponse:
         """Get a specific observation by ID"""
         if not AuthPolicies.can_read_all_resources(user):
             raise PermissionError("Insufficient permissions")
 
-        observation = await self.observation_repo.get_by_id(observation_id)
+        observation = self.observation_repo.get_by_id(observation_id)
         if not observation:
             raise ValueError("Observation not found")
 
@@ -42,7 +42,7 @@ class ObservationController:
             valueString=observation.value_string
         )
 
-    async def create_observation(self, request: ObservationCreateRequest, user: User) -> ObservationResponse:
+    def create_observation(self, request: ObservationCreateRequest, user: User) -> ObservationResponse:
         """Create a new observation"""
         if not AuthPolicies.can_create_observation(user):
             raise PermissionError("Insufficient permissions")
@@ -51,7 +51,7 @@ class ObservationController:
         observation = Observation.from_fhir_resource(request.dict(), UUID())
 
         # Save to repository
-        created_observation = await self.observation_repo.create(observation)
+        created_observation = self.observation_repo.create(observation)
 
         return ObservationResponse(
             resourceType="Observation",
@@ -68,7 +68,7 @@ class ObservationController:
             valueString=created_observation.value_string
         )
 
-    async def search_observations(self, request: ObservationSearchRequest, user: User) -> Bundle:
+    def search_observations(self, request: ObservationSearchRequest, user: User) -> Bundle:
         """Search observations"""
         if not AuthPolicies.can_read_all_resources(user):
             raise PermissionError("Insufficient permissions")
@@ -80,7 +80,7 @@ class ObservationController:
             except (ValueError, IndexError):
                 pass
 
-        observations = await self.observation_repo.search(
+        observations = self.observation_repo.search(
             code=request.code,
             date=request.date,
             subject=subject_uuid
@@ -109,3 +109,32 @@ class ObservationController:
             total=len(entries),
             entry=entries
         )
+
+    def update_observation(self, observation_id: UUID, request: ObservationCreateRequest, user: User) -> ObservationResponse:
+        """Update an existing observation"""
+        if not AuthPolicies.can_modify_observation(user.role.value):
+            raise PermissionError("Insufficient permissions")
+
+        observation = Observation.from_fhir_resource(request.dict(), observation_id)
+        updated = self.observation_repo.update(observation)
+
+        return ObservationResponse(
+            resourceType="Observation",
+            id=str(updated.id),
+            status=updated.status.value if updated.status else None,
+            code={"coding": [{"code": updated.code_code}]} if updated.code_code else None,
+            subject={"reference": f"Patient/{updated.subject_patient_id}"} if updated.subject_patient_id else None,
+            encounter={"reference": f"Encounter/{updated.encounter_id}"} if updated.encounter_id else None,
+            effectiveDateTime=updated.effective_datetime,
+            valueQuantity={
+                "value": updated.value_quantity_value,
+                "unit": updated.value_quantity_unit
+            } if updated.value_quantity_value is not None else None,
+            valueString=updated.value_string
+        )
+
+    def delete_observation(self, observation_id: UUID, user: User) -> bool:
+        """Delete an observation"""
+        if not AuthPolicies.can_delete_observation(user.role.value):
+            raise PermissionError("Insufficient permissions")
+        return self.observation_repo.delete(observation_id)

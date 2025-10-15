@@ -94,3 +94,26 @@ class PatientController:
             total=len(entries),
             entry=entries
         )
+
+    def update_patient(self, patient_id: UUID, request: PatientCreateRequest, user: User) -> PatientResponse:
+        """Update an existing patient"""
+        if not AuthPolicies.can_modify_resources(user):
+            raise PermissionError("Insufficient permissions")
+
+        patient = Patient.from_fhir_resource(request.dict(), patient_id)
+        updated = self.patient_repo.update(patient)
+
+        return PatientResponse(
+            resourceType="Patient",
+            id=str(updated.id),
+            identifier=[{"value": updated.identifier_value}] if updated.identifier_value else [],
+            name=[{"family": updated.name_family, "given": [updated.name_given]}] if updated.name_family else [],
+            gender=updated.gender.value if updated.gender else None,
+            birthDate=updated.birth_date
+        )
+
+    def delete_patient(self, patient_id: UUID, user: User) -> bool:
+        """Delete a patient"""
+        if not AuthPolicies.can_delete_patient(user.role.value):
+            raise PermissionError("Insufficient permissions")
+        return self.patient_repo.delete(patient_id)
