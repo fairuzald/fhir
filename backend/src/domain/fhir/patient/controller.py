@@ -1,4 +1,4 @@
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from src.domain.auth.entities import User
 from src.domain.auth.policies import AuthPolicies
@@ -53,7 +53,8 @@ class PatientController:
             name_given = ", ".join(request.name[0].given) if request.name[0].given else None
 
         # Create domain entity
-        patient = Patient.from_fhir_resource(request.dict(), UUID())
+        # Generate a new UUID for the patient and use Pydantic v2 serialization
+        patient = Patient.from_fhir_resource(request.model_dump(), uuid4())
 
         # Save to repository
         created_patient = self.patient_repo.create(patient)
@@ -100,7 +101,7 @@ class PatientController:
         if not AuthPolicies.can_modify_resources(user):
             raise PermissionError("Insufficient permissions")
 
-        patient = Patient.from_fhir_resource(request.dict(), patient_id)
+        patient = Patient.from_fhir_resource(request.model_dump(), patient_id)
         updated = self.patient_repo.update(patient)
 
         return PatientResponse(
@@ -114,6 +115,6 @@ class PatientController:
 
     def delete_patient(self, patient_id: UUID, user: User) -> bool:
         """Delete a patient"""
-        if not AuthPolicies.can_delete_patient(user.role.value):
+        if not AuthPolicies.can_delete_patient(user):
             raise PermissionError("Insufficient permissions")
         return self.patient_repo.delete(patient_id)

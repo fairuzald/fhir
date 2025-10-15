@@ -1,9 +1,12 @@
 from typing import List, Optional
 from uuid import UUID
+
 from sqlalchemy.orm import Session
-from src.domain.fhir.patient.entities import Patient, Gender
+
+from src.domain.fhir.patient.entities import Gender, Patient
 from src.domain.fhir.patient.repositories import PatientRepository
 from src.infrastructure.db.models.fhir.patient import Patient as PatientModel
+
 
 class SQLAlchemyPatientRepository(PatientRepository):
     def __init__(self, db: Session):
@@ -27,14 +30,14 @@ class SQLAlchemyPatientRepository(PatientRepository):
         )
 
     def create(self, patient: Patient) -> Patient:
-        patient_model = PatientModel(
-            identifier_value=patient.identifier_value,
-            name_family=patient.name_family,
-            name_given=patient.name_given,
-            gender=patient.gender.value if patient.gender else None,
-            birth_date=patient.birth_date,
-            resource=patient.resource
-        )
+        # instantiate then assign to avoid constructor keyword mismatches
+        patient_model = PatientModel()
+        patient_model.identifier_value = patient.identifier_value
+        patient_model.name_family = patient.name_family
+        patient_model.name_given = patient.name_given
+        patient_model.gender = patient.gender.value if patient.gender else None
+        patient_model.birth_date = patient.birth_date
+        patient_model.resource = patient.resource
         self.db.add(patient_model)
         self.db.commit()
         self.db.refresh(patient_model)

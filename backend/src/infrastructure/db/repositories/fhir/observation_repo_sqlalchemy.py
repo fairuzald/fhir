@@ -1,15 +1,20 @@
 from typing import List, Optional
 from uuid import UUID
+
 from sqlalchemy.orm import Session
+
 from src.domain.fhir.observation.entities import Observation, ObservationStatus
 from src.domain.fhir.observation.repositories import ObservationRepository
-from src.infrastructure.db.models.fhir.observation import Observation as ObservationModel
+from src.infrastructure.db.models.fhir.observation import (
+    Observation as ObservationModel,
+)
+
 
 class SQLAlchemyObservationRepository(ObservationRepository):
     def __init__(self, db: Session):
         self.db = db
 
-    async def get_by_id(self, observation_id: UUID) -> Optional[Observation]:
+    def get_by_id(self, observation_id: UUID) -> Optional[Observation]:
         observation_model = self.db.query(ObservationModel).filter(ObservationModel.id == observation_id).first()
         if not observation_model:
             return None
@@ -29,7 +34,7 @@ class SQLAlchemyObservationRepository(ObservationRepository):
             updated_at=observation_model.updated_at
         )
 
-    async def create(self, observation: Observation) -> Observation:
+    def create(self, observation: Observation) -> Observation:
         observation_model = ObservationModel(
             status=observation.status.value if observation.status else None,
             code_code=observation.code_code,
@@ -60,7 +65,7 @@ class SQLAlchemyObservationRepository(ObservationRepository):
             updated_at=observation_model.updated_at
         )
 
-    async def update(self, observation: Observation) -> Observation:
+    def update(self, observation: Observation) -> Observation:
         observation_model = self.db.query(ObservationModel).filter(ObservationModel.id == observation.id).first()
         if not observation_model:
             raise ValueError("Observation not found")
@@ -93,7 +98,7 @@ class SQLAlchemyObservationRepository(ObservationRepository):
             updated_at=observation_model.updated_at
         )
 
-    async def delete(self, observation_id: UUID) -> bool:
+    def delete(self, observation_id: UUID) -> bool:
         observation_model = self.db.query(ObservationModel).filter(ObservationModel.id == observation_id).first()
         if not observation_model:
             return False
@@ -102,7 +107,7 @@ class SQLAlchemyObservationRepository(ObservationRepository):
         self.db.commit()
         return True
 
-    async def search(self, code: Optional[str] = None, date: Optional[str] = None, subject: Optional[UUID] = None) -> List[Observation]:
+    def search(self, code: Optional[str] = None, date: Optional[str] = None, subject: Optional[UUID] = None) -> List[Observation]:
         query = self.db.query(ObservationModel)
 
         if code:
@@ -133,4 +138,3 @@ class SQLAlchemyObservationRepository(ObservationRepository):
             )
             for om in observation_models
         ]
-

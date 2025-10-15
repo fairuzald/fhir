@@ -1,4 +1,4 @@
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from src.domain.auth.entities import User
 from src.domain.auth.policies import AuthPolicies
@@ -48,7 +48,7 @@ class ObservationController:
             raise PermissionError("Insufficient permissions")
 
         # Create domain entity
-        observation = Observation.from_fhir_resource(request.dict(), UUID())
+        observation = Observation.from_fhir_resource(request.model_dump(), uuid4())
 
         # Save to repository
         created_observation = self.observation_repo.create(observation)
@@ -112,10 +112,10 @@ class ObservationController:
 
     def update_observation(self, observation_id: UUID, request: ObservationCreateRequest, user: User) -> ObservationResponse:
         """Update an existing observation"""
-        if not AuthPolicies.can_modify_observation(user.role.value):
+        if not AuthPolicies.can_modify_observation(user):
             raise PermissionError("Insufficient permissions")
 
-        observation = Observation.from_fhir_resource(request.dict(), observation_id)
+        observation = Observation.from_fhir_resource(request.model_dump(), observation_id)
         updated = self.observation_repo.update(observation)
 
         return ObservationResponse(
@@ -135,6 +135,6 @@ class ObservationController:
 
     def delete_observation(self, observation_id: UUID, user: User) -> bool:
         """Delete an observation"""
-        if not AuthPolicies.can_delete_observation(user.role.value):
+        if not AuthPolicies.can_delete_observation(user):
             raise PermissionError("Insufficient permissions")
         return self.observation_repo.delete(observation_id)

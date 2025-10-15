@@ -1,8 +1,9 @@
-from enum import Enum
 from dataclasses import dataclass
-from datetime import datetime, date
+from datetime import datetime
+from enum import Enum
+from typing import Any, Dict, List, Optional
 from uuid import UUID
-from typing import Optional, List, Dict, Any
+
 
 class EncounterStatus(str, Enum):
     PLANNED = "planned"
@@ -90,15 +91,33 @@ class Encounter:
         if resource.get("period"):
             period = resource["period"]
             if period.get("start"):
-                period_start = datetime.fromisoformat(period["start"].replace("Z", "+00:00"))
+                start_val = period["start"]
+                if isinstance(start_val, datetime):
+                    period_start = start_val
+                elif isinstance(start_val, str):
+                    period_start = datetime.fromisoformat(start_val.replace("Z", "+00:00"))
             if period.get("end"):
-                period_end = datetime.fromisoformat(period["end"].replace("Z", "+00:00"))
+                end_val = period["end"]
+                if isinstance(end_val, datetime):
+                    period_end = end_val
+                elif isinstance(end_val, str):
+                    period_end = datetime.fromisoformat(end_val.replace("Z", "+00:00"))
 
         reason_code = None
         if resource.get("reasonCode") and len(resource["reasonCode"]) > 0:
             reason = resource["reasonCode"][0]
             if reason.get("coding") and len(reason["coding"]) > 0:
                 reason_code = reason["coding"][0].get("code")
+
+        # Ensure resource JSON-serializable (serialize datetime fields)
+        resource_serializable = dict(resource)
+        if isinstance(resource_serializable.get("period"), dict):
+            p = dict(resource_serializable["period"])  # shallow copy
+            if isinstance(p.get("start"), datetime):
+                p["start"] = p["start"].isoformat()
+            if isinstance(p.get("end"), datetime):
+                p["end"] = p["end"].isoformat()
+            resource_serializable["period"] = p
 
         return cls(
             id=encounter_id,
@@ -108,8 +127,7 @@ class Encounter:
             period_start=period_start,
             period_end=period_end,
             reason_code=reason_code,
-            resource=resource,
+            resource=resource_serializable,
             created_at=datetime.now(),
             updated_at=datetime.now()
         )
-

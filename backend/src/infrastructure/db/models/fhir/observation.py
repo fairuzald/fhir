@@ -1,8 +1,11 @@
-from sqlalchemy import Column, String, ForeignKey, Numeric, TIMESTAMP
-from sqlalchemy.dialects.postgresql import UUID, JSONB
-from sqlalchemy.sql import func
 import uuid
+
+from sqlalchemy import TIMESTAMP, Column, ForeignKey, Numeric, String
+from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.sql import func
+
 from src.infrastructure.db.base import Base
+
 
 class Observation(Base):
     __tablename__ = "observation"
@@ -12,7 +15,7 @@ class Observation(Base):
     status = Column(String)
     code_code = Column(String)
     subject_patient_id = Column(UUID(as_uuid=True), ForeignKey('fhir.patient.id'))
-    encounter_id = Column(UUID(as_uuid=True), ForeignKey('fhir.encounter.id'))
+    encounter_id = Column(UUID(as_uuid=True), ForeignKey('fhir.encounter.id', ondelete='CASCADE'))
     effective_datetime = Column(TIMESTAMP(timezone=True))
     value_quantity_value = Column(Numeric)
     value_quantity_unit = Column(String)

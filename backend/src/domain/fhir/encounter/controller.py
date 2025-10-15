@@ -1,4 +1,4 @@
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from src.domain.auth.entities import User
 from src.domain.auth.policies import AuthPolicies
@@ -46,7 +46,7 @@ class EncounterController:
             raise PermissionError("Insufficient permissions")
 
         # Create domain entity
-        encounter = Encounter.from_fhir_resource(request.dict(), UUID())
+        encounter = Encounter.from_fhir_resource(request.model_dump(), uuid4())
 
         # Save to repository
         created_encounter = self.encounter_repo.create(encounter)
@@ -106,10 +106,10 @@ class EncounterController:
 
     def update_encounter(self, encounter_id: UUID, request: EncounterCreateRequest, user: User) -> EncounterResponse:
         """Update an existing encounter"""
-        if not AuthPolicies.can_modify_encounter(user.role.value):
+        if not AuthPolicies.can_modify_encounter(user):
             raise PermissionError("Insufficient permissions")
 
-        encounter = Encounter.from_fhir_resource(request.dict(), encounter_id)
+        encounter = Encounter.from_fhir_resource(request.model_dump(), encounter_id)
         updated = self.encounter_repo.update(encounter)
 
         return EncounterResponse(
@@ -127,6 +127,6 @@ class EncounterController:
 
     def delete_encounter(self, encounter_id: UUID, user: User) -> bool:
         """Delete an encounter"""
-        if not AuthPolicies.can_delete_encounter(user.role.value):
+        if not AuthPolicies.can_delete_encounter(user):
             raise PermissionError("Insufficient permissions")
         return self.encounter_repo.delete(encounter_id)

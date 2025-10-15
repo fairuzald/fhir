@@ -1,8 +1,11 @@
-from sqlalchemy import Column, String, Date, TIMESTAMP
-from sqlalchemy.dialects.postgresql import UUID, JSONB
-from sqlalchemy.sql import func
 import uuid
+
+from sqlalchemy import TIMESTAMP, Column, Date, String
+from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.sql import func
+
 from src.infrastructure.db.base import Base
+
 
 class Patient(Base):
     __tablename__ = "patient"

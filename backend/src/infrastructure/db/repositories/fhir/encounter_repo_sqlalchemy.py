@@ -1,15 +1,21 @@
 from typing import List, Optional
 from uuid import UUID
+
 from sqlalchemy.orm import Session
+
 from src.domain.fhir.encounter.entities import Encounter, EncounterStatus
 from src.domain.fhir.encounter.repositories import EncounterRepository
 from src.infrastructure.db.models.fhir.encounter import Encounter as EncounterModel
+from src.infrastructure.db.models.fhir.observation import (
+    Observation as ObservationModel,
+)
+
 
 class SQLAlchemyEncounterRepository(EncounterRepository):
     def __init__(self, db: Session):
         self.db = db
 
-    async def get_by_id(self, encounter_id: UUID) -> Optional[Encounter]:
+    def get_by_id(self, encounter_id: UUID) -> Optional[Encounter]:
         encounter_model = self.db.query(EncounterModel).filter(EncounterModel.id == encounter_id).first()
         if not encounter_model:
             return None
@@ -27,7 +33,7 @@ class SQLAlchemyEncounterRepository(EncounterRepository):
             updated_at=encounter_model.updated_at
         )
 
-    async def create(self, encounter: Encounter) -> Encounter:
+    def create(self, encounter: Encounter) -> Encounter:
         encounter_model = EncounterModel(
             status=encounter.status.value if encounter.status else None,
             class_code=encounter.class_code,
@@ -54,7 +60,7 @@ class SQLAlchemyEncounterRepository(EncounterRepository):
             updated_at=encounter_model.updated_at
         )
 
-    async def update(self, encounter: Encounter) -> Encounter:
+    def update(self, encounter: Encounter) -> Encounter:
         encounter_model = self.db.query(EncounterModel).filter(EncounterModel.id == encounter.id).first()
         if not encounter_model:
             raise ValueError("Encounter not found")
@@ -83,16 +89,19 @@ class SQLAlchemyEncounterRepository(EncounterRepository):
             updated_at=encounter_model.updated_at
         )
 
-    async def delete(self, encounter_id: UUID) -> bool:
+    def delete(self, encounter_id: UUID) -> bool:
         encounter_model = self.db.query(EncounterModel).filter(EncounterModel.id == encounter_id).first()
         if not encounter_model:
             return False
 
+        # Delete dependent observations first to satisfy FK constraints
+        self.db.query(ObservationModel).filter(ObservationModel.encounter_id == encounter_id).delete(synchronize_session=False)
+        self.db.flush()
         self.db.delete(encounter_model)
         self.db.commit()
         return True
 
-    async def search(self, status: Optional[str] = None, subject: Optional[UUID] = None, date: Optional[str] = None) -> List[Encounter]:
+    def search(self, status: Optional[str] = None, subject: Optional[UUID] = None, date: Optional[str] = None) -> List[Encounter]:
         query = self.db.query(EncounterModel)
 
         if status:
@@ -121,4 +130,3 @@ class SQLAlchemyEncounterRepository(EncounterRepository):
             )
             for em in encounter_models
         ]
-

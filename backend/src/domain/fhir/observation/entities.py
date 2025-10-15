@@ -1,8 +1,9 @@
-from enum import Enum
 from dataclasses import dataclass
-from datetime import datetime, date
+from datetime import date, datetime
+from enum import Enum
+from typing import Any, Dict, List, Optional
 from uuid import UUID
-from typing import Optional, List, Dict, Any
+
 
 class ObservationStatus(str, Enum):
     REGISTERED = "registered"
@@ -99,7 +100,14 @@ class Observation:
 
         effective_datetime = None
         if resource.get("effectiveDateTime"):
-            effective_datetime = datetime.fromisoformat(resource["effectiveDateTime"].replace("Z", "+00:00"))
+            raw_effective = resource["effectiveDateTime"]
+            if isinstance(raw_effective, str):
+                # Support Z suffix and timezone-aware strings
+                effective_datetime = datetime.fromisoformat(raw_effective.replace("Z", "+00:00"))
+            elif isinstance(raw_effective, datetime):
+                effective_datetime = raw_effective
+            elif isinstance(raw_effective, date):
+                effective_datetime = datetime.combine(raw_effective, datetime.min.time())
 
         value_quantity_value = None
         value_quantity_unit = None
@@ -108,6 +116,11 @@ class Observation:
             value_quantity_unit = resource["valueQuantity"].get("unit")
 
         value_string = resource.get("valueString")
+
+        # Ensure JSON-serializable resource (convert datetimes to ISO strings)
+        normalized_resource = dict(resource)
+        if effective_datetime is not None:
+            normalized_resource["effectiveDateTime"] = effective_datetime.isoformat()
 
         return cls(
             id=observation_id,
@@ -119,8 +132,7 @@ class Observation:
             value_quantity_value=value_quantity_value,
             value_quantity_unit=value_quantity_unit,
             value_string=value_string,
-            resource=resource,
+            resource=normalized_resource,
             created_at=datetime.now(),
             updated_at=datetime.now()
         )
-

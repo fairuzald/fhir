@@ -1,8 +1,9 @@
-from enum import Enum
 from dataclasses import dataclass
-from datetime import datetime, date
+from datetime import date, datetime
+from enum import Enum
+from typing import Any, Dict, List, Optional
 from uuid import UUID
-from typing import Optional, List, Dict, Any
+
 
 class Gender(str, Enum):
     MALE = "male"
@@ -68,7 +69,16 @@ class Patient:
 
         birth_date = None
         if resource.get("birthDate"):
-            birth_date = datetime.fromisoformat(resource["birthDate"]).date()
+            b = resource["birthDate"]
+            if isinstance(b, date):
+                birth_date = b
+            elif isinstance(b, str):
+                birth_date = date.fromisoformat(b)
+
+        # Ensure resource is JSON-serializable (convert date objects to ISO strings)
+        resource_serializable = dict(resource)
+        if isinstance(resource_serializable.get("birthDate"), date):
+            resource_serializable["birthDate"] = resource_serializable["birthDate"].isoformat()
 
         return cls(
             id=patient_id,
@@ -77,8 +87,7 @@ class Patient:
             name_given=name_given,
             gender=gender,
             birth_date=birth_date,
-            resource=resource,
+            resource=resource_serializable,
             created_at=datetime.now(),
             updated_at=datetime.now()
         )
-
