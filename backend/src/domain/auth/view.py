@@ -1,7 +1,8 @@
-from pydantic import BaseModel, EmailStr
-from typing import Optional
 from datetime import datetime
 from uuid import UUID
+
+from pydantic import BaseModel, EmailStr
+
 
 class LoginRequest(BaseModel):
     email: EmailStr
@@ -18,4 +19,3 @@ class MeResponse(BaseModel):
     is_active: bool
     created_at: datetime
     updated_at: datetime
-

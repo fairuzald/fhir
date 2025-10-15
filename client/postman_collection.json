@@ -102,7 +102,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"resourceType\": \"Patient\",\n  \"identifier\": [{\n    \"value\": \"PAT003\",\n    \"system\": \"http://hospital.example.com/patients\"\n  }],\n  \"name\": [{\n    \"family\": \"Doe\",\n    \"given\": [\"John\"]\n  }],\n  \"gender\": \"male\",\n  \"birthDate\": \"1995-03-10\"\n}"
+                  "raw": "{\n  \"resourceType\": \"Patient\",\n  \"identifier\": [{\n    \"system\": \"http://hospital.example.com/patients\",\n    \"value\": \"PAT003\"\n  }],\n  \"active\": true,\n  \"name\": [{\n    \"family\": \"Doe\",\n    \"given\": [\"John\"]\n  }],\n  \"telecom\": [{\n    \"system\": \"phone\",\n    \"value\": \"+1-555-555-5555\",\n    \"use\": \"mobile\"\n  }],\n  \"gender\": \"male\",\n  \"birthDate\": \"1995-03-10\",\n  \"address\": [{\n    \"line\": [\"123 Main St\"],\n    \"city\": \"Metropolis\",\n    \"state\": \"NY\",\n    \"postalCode\": \"10001\",\n    \"country\": \"USA\"\n  }]\n}"
                 },
                 "url": {
                   "raw": "{{base_url}}/api/fhir/Patient",
@@ -138,13 +138,17 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{base_url}}/api/fhir/Patient?name=Smith",
+                  "raw": "{{base_url}}/api/fhir/Patient?name=Smith&identifier=PAT003",
                   "host": ["{{base_url}}"],
                   "path": ["api", "fhir", "Patient"],
                   "query": [
                     {
                       "key": "name",
                       "value": "Smith"
+                    },
+                    {
+                      "key": "identifier",
+                      "value": "PAT003"
                     }
                   ]
                 }
@@ -218,7 +222,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"resourceType\": \"Encounter\",\n  \"status\": \"planned\",\n  \"class\": {\n    \"code\": \"AMB\",\n    \"display\": \"Ambulatory\"\n  },\n  \"subject\": {\n    \"reference\": \"Patient/{{patient_id}}\"\n  },\n  \"period\": {\n    \"start\": \"2024-01-20T10:00:00Z\"\n  },\n  \"reasonCode\": [{\n    \"coding\": [{\n      \"code\": \"Z00.00\",\n      \"display\": \"General examination\"\n    }]\n  }]\n}"
+                  "raw": "{\n  \"resourceType\": \"Encounter\",\n  \"identifier\": [{ \"system\": \"http://hospital.example.com/encounters\", \"value\": \"ENC-001\" }],\n  \"status\": \"planned\",\n  \"class\": [{ \"coding\": [{ \"code\": \"AMB\", \"display\": \"Ambulatory\" }] }],\n  \"priority\": { \"coding\": [{ \"code\": \"R\", \"display\": \"Routine\" }] },\n  \"type\": [{ \"coding\": [{ \"code\": \"GEN\", \"display\": \"General\" }] }],\n  \"subject\": { \"reference\": \"Patient/{{patient_id}}\" },\n  \"plannedStartDate\": \"2024-01-20T10:00:00Z\",\n  \"reason\": [{ \"value\": [{ \"reference\": \"Condition/COND-001\" }] }]\n}"
                 },
                 "url": {
                   "raw": "{{base_url}}/api/fhir/Encounter",
@@ -290,7 +294,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"resourceType\": \"Encounter\",\n  \"status\": \"finished\"\n}"
+                  "raw": "{\n  \"resourceType\": \"Encounter\",\n  \"status\": \"finished\",\n  \"class\": [{ \"coding\": [{ \"code\": \"AMB\" }] }],\n  \"type\": [{ \"coding\": [{ \"code\": \"GEN\" }] }],\n  \"actualPeriod\": { \"start\": \"2024-01-20T10:00:00Z\", \"end\": \"2024-01-20T10:45:00Z\" }\n}"
                 },
                 "url": {
                   "raw": "{{base_url}}/api/fhir/Encounter/{{encounter_id}}",
@@ -334,14 +338,30 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"resourceType\": \"Observation\",\n  \"status\": \"final\",\n  \"code\": {\n    \"coding\": [{\n      \"code\": \"8310-5\",\n      \"display\": \"Body temperature\"\n    }]\n  },\n  \"subject\": {\n    \"reference\": \"Patient/{{patient_id}}\"\n  },\n  \"encounter\": {\n    \"reference\": \"Encounter/{{encounter_id}}\"\n  },\n  \"effectiveDateTime\": \"2024-01-20T10:30:00Z\",\n  \"valueQuantity\": {\n    \"value\": 98.6,\n    \"unit\": \"°F\",\n    \"system\": \"http://unitsofmeasure.org\",\n    \"code\": \"[degF]\"\n  }\n}"
+                  "raw": "{\n  \"resourceType\": \"Observation\",\n  \"identifier\": [{ \"system\": \"http://hospital.example.com/observations\", \"value\": \"OBS-001\" }],\n  \"status\": \"final\",\n  \"category\": [{ \"coding\": [{ \"code\": \"vital-signs\" }] }],\n  \"code\": { \"coding\": [{ \"code\": \"8310-5\", \"display\": \"Body temperature\" }] },\n  \"subject\": { \"reference\": \"Patient/{{patient_id}}\" },\n  \"encounter\": { \"reference\": \"Encounter/{{encounter_id}}\" },\n  \"effectiveDateTime\": \"2024-01-20T10:30:00Z\",\n  \"valueQuantity\": { \"value\": 98.6, \"unit\": \"°F\", \"system\": \"http://unitsofmeasure.org\", \"code\": \"[degF]\" }\n}"
                 },
                 "url": {
                   "raw": "{{base_url}}/api/fhir/Observation",
                   "host": ["{{base_url}}"],
                   "path": ["api", "fhir", "Observation"]
                 }
-              }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.response.code === 200 || pm.response.code === 201) {",
+                      "  try {",
+                      "    const data = pm.response.json();",
+                      "    if (data && data.id) { pm.collectionVariables.set('observation_id', data.id); }",
+                      "  } catch (e) { /* no-op */ }",
+                      "}"
+                    ]
+                  }
+                }
+              ]
             },
             {
               "name": "Search Observations",
@@ -390,7 +410,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"resourceType\": \"Observation\",\n  \"status\": \"final\"\n}"
+                  "raw": "{\n  \"resourceType\": \"Observation\",\n  \"status\": \"final\",\n  \"category\": [{ \"coding\": [{ \"code\": \"vital-signs\" }] }],\n  \"code\": { \"coding\": [{ \"code\": \"8310-5\" }] },\n  \"effectiveDateTime\": \"2024-01-20T10:35:00Z\",\n  \"valueQuantity\": { \"value\": 37.0, \"unit\": \"°C\", \"system\": \"http://unitsofmeasure.org\", \"code\": \"Cel\" }\n}"
                 },
                 "url": {
                   "raw": "{{base_url}}/api/fhir/Observation/{{observation_id}}",
@@ -428,23 +448,7 @@
               "raw": "{{base_url}}/api/health",
               "host": ["{{base_url}}"],
               "path": ["api", "health"]
-            },
-            "event": [
-              {
-                "listen": "test",
-                "script": {
-                  "type": "text/javascript",
-                  "exec": [
-                    "if (pm.response.code === 200 || pm.response.code === 201) {",
-                    "  try {",
-                    "    const data = pm.response.json();",
-                    "    if (data && data.id) { pm.collectionVariables.set('observation_id', data.id); }",
-                    "  } catch (e) { /* no-op */ }",
-                    "}"
-                  ]
-                }
-              }
-            ]
+            }
           }
         }
       ]

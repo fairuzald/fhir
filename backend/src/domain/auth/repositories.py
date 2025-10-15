@@ -1,7 +1,9 @@
 from abc import ABC, abstractmethod
 from typing import Optional
 from uuid import UUID
+
 from .entities import User
+
 
 class UserRepository(ABC):
     @abstractmethod

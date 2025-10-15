@@ -18,6 +18,24 @@ class PatientController:
     def __init__(self, patient_repo: PatientRepository):
         self.patient_repo = patient_repo
 
+    def _to_patient_response(self, patient: Patient) -> PatientResponse:
+        """Build PatientResponse from stored patient fields + original resource."""
+        resource = patient.resource or {}
+
+        # Start with explicit searchable fields, then overlay any provided resource fields
+        base = {
+            "resourceType": "Patient",
+            "id": str(patient.id),
+            "identifier": ([{"value": patient.identifier_value}] if patient.identifier_value else []),
+            "name": ([{"family": patient.name_family, "given": [patient.name_given]}] if patient.name_family else []),
+            "gender": (patient.gender.value if patient.gender else None),
+            "birthDate": patient.birth_date,
+        }
+
+        combined: dict = {**base, **{k: v for k, v in resource.items() if v is not None}}
+
+        return PatientResponse(**combined)
+
     def get_patient(self, patient_id: UUID, user: User) -> PatientResponse:
         """Get a specific patient by ID"""
         if not AuthPolicies.can_read_all_resources(user):
@@ -27,14 +45,7 @@ class PatientController:
         if not patient:
             raise ValueError("Patient not found")
 
-        return PatientResponse(
-            resourceType="Patient",
-            id=str(patient.id),
-            identifier=[{"value": patient.identifier_value}] if patient.identifier_value else [],
-            name=[{"family": patient.name_family, "given": [patient.name_given]}] if patient.name_family else [],
-            gender=patient.gender.value if patient.gender else None,
-            birthDate=patient.birth_date
-        )
+        return self._to_patient_response(patient)
 
     def create_patient(self, request: PatientCreateRequest, user: User) -> PatientResponse:
         """Create a new patient"""
@@ -59,14 +70,7 @@ class PatientController:
         # Save to repository
         created_patient = self.patient_repo.create(patient)
 
-        return PatientResponse(
-            resourceType="Patient",
-            id=str(created_patient.id),
-            identifier=[{"value": created_patient.identifier_value}] if created_patient.identifier_value else [],
-            name=[{"family": created_patient.name_family, "given": [created_patient.name_given]}] if created_patient.name_family else [],
-            gender=created_patient.gender.value if created_patient.gender else None,
-            birthDate=created_patient.birth_date
-        )
+        return self._to_patient_response(created_patient)
 
     def search_patients(self, request: PatientSearchRequest, user: User) -> Bundle:
         """Search patients"""
@@ -80,16 +84,9 @@ class PatientController:
 
         entries = []
         for patient in patients:
-            entries.append(BundleEntry(
-                resource=PatientResource(
-                    resourceType="Patient",
-                    id=str(patient.id),
-                    identifier=[{"value": patient.identifier_value}] if patient.identifier_value else [],
-                    name=[{"family": patient.name_family, "given": [patient.name_given]}] if patient.name_family else [],
-                    gender=patient.gender.value if patient.gender else None,
-                    birthDate=patient.birth_date
-                )
-            ))
+            # Build resource view from stored resource
+            pr = PatientResource(**self._to_patient_response(patient).model_dump())
+            entries.append(BundleEntry(resource=pr))
 
         return Bundle(
             total=len(entries),
@@ -104,14 +101,7 @@ class PatientController:
         patient = Patient.from_fhir_resource(request.model_dump(), patient_id)
         updated = self.patient_repo.update(patient)
 
-        return PatientResponse(
-            resourceType="Patient",
-            id=str(updated.id),
-            identifier=[{"value": updated.identifier_value}] if updated.identifier_value else [],
-            name=[{"family": updated.name_family, "given": [updated.name_given]}] if updated.name_family else [],
-            gender=updated.gender.value if updated.gender else None,
-            birthDate=updated.birth_date
-        )
+        return self._to_patient_response(updated)
 
     def delete_patient(self, patient_id: UUID, user: User) -> bool:
         """Delete a patient"""
