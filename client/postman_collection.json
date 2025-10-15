@@ -27,7 +27,28 @@
               "host": ["{{base_url}}"],
               "path": ["api", "auth", "login"]
             }
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  try {",
+                  "    const data = pm.response.json();",
+                  "    if (data && data.access_token) {",
+                  "      pm.collectionVariables.set('token', data.access_token);",
+                  "      console.log('Token stored to collection variable');",
+                  "    }",
+                  "  } catch (e) {",
+                  "    console.log('Failed parsing token', e);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Get Me",
@@ -112,6 +133,53 @@
                   ]
                 }
               }
+            },
+            {
+              "name": "Get Patient",
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{token}}" }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/fhir/Patient/{{patient_id}}",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "fhir", "Patient", "{{patient_id}}"]
+                }
+              }
+            },
+            {
+              "name": "Update Patient",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{token}}" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"resourceType\": \"Patient\",\n  \"name\": [{\n    \"family\": \"Doe\",\n    \"given\": [\"Johnny\"]\n  }]\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/fhir/Patient/{{patient_id}}",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "fhir", "Patient", "{{patient_id}}"]
+                }
+              }
+            },
+            {
+              "name": "Delete Patient",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{token}}" }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/fhir/Patient/{{patient_id}}",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "fhir", "Patient", "{{patient_id}}"]
+                }
+              }
             }
           ]
         },
@@ -163,6 +231,53 @@
                       "value": "finished"
                     }
                   ]
+                }
+              }
+            },
+            {
+              "name": "Get Encounter",
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{token}}" }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/fhir/Encounter/{{encounter_id}}",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "fhir", "Encounter", "{{encounter_id}}"]
+                }
+              }
+            },
+            {
+              "name": "Update Encounter",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{token}}" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"resourceType\": \"Encounter\",\n  \"status\": \"finished\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/fhir/Encounter/{{encounter_id}}",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "fhir", "Encounter", "{{encounter_id}}"]
+                }
+              }
+            },
+            {
+              "name": "Delete Encounter",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{token}}" }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/fhir/Encounter/{{encounter_id}}",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "fhir", "Encounter", "{{encounter_id}}"]
                 }
               }
             }
@@ -218,6 +333,53 @@
                   ]
                 }
               }
+            },
+            {
+              "name": "Get Observation",
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{token}}" }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/fhir/Observation/{{observation_id}}",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "fhir", "Observation", "{{observation_id}}"]
+                }
+              }
+            },
+            {
+              "name": "Update Observation",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{token}}" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"resourceType\": \"Observation\",\n  \"status\": \"final\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/fhir/Observation/{{observation_id}}",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "fhir", "Observation", "{{observation_id}}"]
+                }
+              }
+            },
+            {
+              "name": "Delete Observation",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{token}}" }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/fhir/Observation/{{observation_id}}",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "fhir", "Observation", "{{observation_id}}"]
+                }
+              }
             }
           ]
         }
@@ -245,9 +407,9 @@
       "key": "base_url",
       "value": "http://localhost:8000"
     },
-    {
-      "key": "token",
-      "value": ""
-    }
+    { "key": "token", "value": "" },
+    { "key": "patient_id", "value": "" },
+    { "key": "encounter_id", "value": "" },
+    { "key": "observation_id", "value": "" }
   ]
 }

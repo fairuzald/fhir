@@ -9,7 +9,8 @@ from src.config.settings import settings
 
 class PasswordService:
     def __init__(self):
-        self.pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+        # Use bcrypt_sha256 to avoid bcrypt 72-byte password truncation issue
+        self.pwd_context = CryptContext(schemes=["bcrypt_sha256"], deprecated="auto")
 
     def verify_password(self, plain_password: str, hashed_password: str) -> bool:
         return self.pwd_context.verify(plain_password, hashed_password)
