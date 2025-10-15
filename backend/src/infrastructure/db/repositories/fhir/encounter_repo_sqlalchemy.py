@@ -9,6 +9,7 @@ from src.infrastructure.db.models.fhir.encounter import Encounter as EncounterMo
 from src.infrastructure.db.models.fhir.observation import (
     Observation as ObservationModel,
 )
+from src.infrastructure.db.models.fhir.patient import Patient as PatientModel
 
 
 class SQLAlchemyEncounterRepository(EncounterRepository):
@@ -34,6 +35,16 @@ class SQLAlchemyEncounterRepository(EncounterRepository):
         )
 
     def create(self, encounter: Encounter) -> Encounter:
+        # Validate referenced patient exists when provided
+        if encounter.subject_patient_id:
+            patient_exists = (
+                self.db.query(PatientModel)
+                .filter(PatientModel.id == encounter.subject_patient_id)
+                .first()
+                is not None
+            )
+            if not patient_exists:
+                raise ValueError("Referenced Patient not found")
         encounter_model = EncounterModel(
             status=encounter.status.value if encounter.status else None,
             class_code=encounter.class_code,
@@ -64,6 +75,17 @@ class SQLAlchemyEncounterRepository(EncounterRepository):
         encounter_model = self.db.query(EncounterModel).filter(EncounterModel.id == encounter.id).first()
         if not encounter_model:
             raise ValueError("Encounter not found")
+
+        # Validate referenced patient exists when provided
+        if encounter.subject_patient_id:
+            patient_exists = (
+                self.db.query(PatientModel)
+                .filter(PatientModel.id == encounter.subject_patient_id)
+                .first()
+                is not None
+            )
+            if not patient_exists:
+                raise ValueError("Referenced Patient not found")
 
         encounter_model.status = encounter.status.value if encounter.status else None
         encounter_model.class_code = encounter.class_code

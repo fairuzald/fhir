@@ -5,9 +5,11 @@ from sqlalchemy.orm import Session
 
 from src.domain.fhir.observation.entities import Observation, ObservationStatus
 from src.domain.fhir.observation.repositories import ObservationRepository
+from src.infrastructure.db.models.fhir.encounter import Encounter as EncounterModel
 from src.infrastructure.db.models.fhir.observation import (
     Observation as ObservationModel,
 )
+from src.infrastructure.db.models.fhir.patient import Patient as PatientModel
 
 
 class SQLAlchemyObservationRepository(ObservationRepository):
@@ -35,6 +37,27 @@ class SQLAlchemyObservationRepository(ObservationRepository):
         )
 
     def create(self, observation: Observation) -> Observation:
+        # Validate referenced Patient exists
+        if observation.subject_patient_id:
+            patient_exists = (
+                self.db.query(PatientModel)
+                .filter(PatientModel.id == observation.subject_patient_id)
+                .first()
+                is not None
+            )
+            if not patient_exists:
+                raise ValueError("Referenced Patient not found")
+
+        # Validate referenced Encounter exists
+        if observation.encounter_id:
+            encounter_exists = (
+                self.db.query(EncounterModel)
+                .filter(EncounterModel.id == observation.encounter_id)
+                .first()
+                is not None
+            )
+            if not encounter_exists:
+                raise ValueError("Referenced Encounter not found")
         observation_model = ObservationModel(
             status=observation.status.value if observation.status else None,
             code_code=observation.code_code,
@@ -69,6 +92,28 @@ class SQLAlchemyObservationRepository(ObservationRepository):
         observation_model = self.db.query(ObservationModel).filter(ObservationModel.id == observation.id).first()
         if not observation_model:
             raise ValueError("Observation not found")
+
+        # Validate referenced Patient exists
+        if observation.subject_patient_id:
+            patient_exists = (
+                self.db.query(PatientModel)
+                .filter(PatientModel.id == observation.subject_patient_id)
+                .first()
+                is not None
+            )
+            if not patient_exists:
+                raise ValueError("Referenced Patient not found")
+
+        # Validate referenced Encounter exists
+        if observation.encounter_id:
+            encounter_exists = (
+                self.db.query(EncounterModel)
+                .filter(EncounterModel.id == observation.encounter_id)
+                .first()
+                is not None
+            )
+            if not encounter_exists:
+                raise ValueError("Referenced Encounter not found")
 
         observation_model.status = observation.status.value if observation.status else None
         observation_model.code_code = observation.code_code
