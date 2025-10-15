@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: fhir_db
+      POSTGRES_USER: fhir_user
+      POSTGRES_PASSWORD: fhir_password
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U fhir_user -d fhir_db']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: ./backend
+    ports:
+      - '8000:8000'
+    environment:
+      DATABASE_URL: postgresql://fhir_user:fhir_password@postgres:5432/fhir_db
+      SECRET_KEY: your-secret-key-change-in-production
+      ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 30
+      PYTHONPATH: /app
+      WATCHFILES_FORCE_POLLING: 'true'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+    command: uvicorn src.interfaces.api.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app/src
+
+volumes:
+  postgres_data:

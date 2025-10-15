@@ -1,0 +1,253 @@
+{
+  "info": {
+    "name": "FHIR Simulation Server",
+    "description": "API collection for FHIR R4 simulation server",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@fhir.com\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Get Me",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/me",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "me"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "FHIR Resources",
+      "item": [
+        {
+          "name": "Get Metadata",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/fhir/metadata",
+              "host": ["{{base_url}}"],
+              "path": ["api", "fhir", "metadata"]
+            }
+          }
+        },
+        {
+          "name": "Patient",
+          "item": [
+            {
+              "name": "Create Patient",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"resourceType\": \"Patient\",\n  \"identifier\": [{\n    \"value\": \"PAT003\",\n    \"system\": \"http://hospital.example.com/patients\"\n  }],\n  \"name\": [{\n    \"family\": \"Doe\",\n    \"given\": [\"John\"]\n  }],\n  \"gender\": \"male\",\n  \"birthDate\": \"1995-03-10\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/fhir/Patient",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "fhir", "Patient"]
+                }
+              }
+            },
+            {
+              "name": "Search Patients",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/fhir/Patient?name=Smith",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "fhir", "Patient"],
+                  "query": [
+                    {
+                      "key": "name",
+                      "value": "Smith"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Encounter",
+          "item": [
+            {
+              "name": "Create Encounter",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"resourceType\": \"Encounter\",\n  \"status\": \"planned\",\n  \"class\": {\n    \"code\": \"AMB\",\n    \"display\": \"Ambulatory\"\n  },\n  \"subject\": {\n    \"reference\": \"Patient/PATIENT_ID\"\n  },\n  \"period\": {\n    \"start\": \"2024-01-20T10:00:00Z\"\n  },\n  \"reasonCode\": [{\n    \"coding\": [{\n      \"code\": \"Z00.00\",\n      \"display\": \"General examination\"\n    }]\n  }]\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/fhir/Encounter",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "fhir", "Encounter"]
+                }
+              }
+            },
+            {
+              "name": "Search Encounters",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/fhir/Encounter?status=finished",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "fhir", "Encounter"],
+                  "query": [
+                    {
+                      "key": "status",
+                      "value": "finished"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Observation",
+          "item": [
+            {
+              "name": "Create Observation",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"resourceType\": \"Observation\",\n  \"status\": \"final\",\n  \"code\": {\n    \"coding\": [{\n      \"code\": \"8310-5\",\n      \"display\": \"Body temperature\"\n    }]\n  },\n  \"subject\": {\n    \"reference\": \"Patient/PATIENT_ID\"\n  },\n  \"encounter\": {\n    \"reference\": \"Encounter/ENCOUNTER_ID\"\n  },\n  \"effectiveDateTime\": \"2024-01-20T10:30:00Z\",\n  \"valueQuantity\": {\n    \"value\": 98.6,\n    \"unit\": \"°F\",\n    \"system\": \"http://unitsofmeasure.org\",\n    \"code\": \"[degF]\"\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/fhir/Observation",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "fhir", "Observation"]
+                }
+              }
+            },
+            {
+              "name": "Search Observations",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/fhir/Observation?code=8310-5",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "fhir", "Observation"],
+                  "query": [
+                    {
+                      "key": "code",
+                      "value": "8310-5"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/health",
+              "host": ["{{base_url}}"],
+              "path": ["api", "health"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000"
+    },
+    {
+      "key": "token",
+      "value": ""
+    }
+  ]
+}
